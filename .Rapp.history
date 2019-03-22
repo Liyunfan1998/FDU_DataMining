@@ -1,0 +1,79 @@
+install.package(“ggplot2”)
+install.package("ggplot2")
+install.packages("tidyverse")
+install.packages("ggplot2")
+ddplot
+ggplot
+library(ggplot2)
+library(ggplot2)
+install.packages("devtools")
+install.packages("devtools")
+library(ggplot2)
+devtools::install_github("tidyverse/ggplot2")
+library(ggplot2)
+install.packages("showtext")
+library(showtext)
+library(showtext)
+par(family='STHeiti')
+setwd("/Users/liyunfan/Desktop/数据挖掘")
+dat0 <- read.csv("cars.csv", header=1, stringsAsFactors=FALSE, fileEncoding="GB2312")
+d1 <- subset(dat0,pailiang != -1|paifang != -1)
+baozhilv <- d1$baojia/d1$yuanjia#
+hist(baozhilv,col="yellow",xlab="保值率",ylab="频数", main="保值率",family = "STHeiti")#
+logbaozhilv <- log(d1$baojia/(d1$yuanjia-d1$baojia))#
+hist(logbaozhilv,col="yellow",xlab="Log保值率",ylab="频数", main="Log保值率",family = "STHeiti")
+vecBZL <- as.data.frame(baozhilv)#
+#vecBZL<-rowSums(vecBZL*is.finite(vecBZL),na.rm=TRUE)#
+vecBZL[sapply(vecBZL, is.infinite)] <- NA#
+vecBZL<-na.omit(vecBZL)#
+dim(vecBZL)#
+vecBZL<-as.numeric(unlist(vecBZL))
+#message("均值")#
+mean(vecBZL)#
+#message("中位数")#
+max(vecBZL)#
+#message("最大值")#
+min(vecBZL)#
+#message("最小值")#
+median(vecBZL, na.rm = FALSE)#
+getmode <- function(v) {#
+  uniqv <- unique(v)#
+  uniqv[which.max(tabulate(match(v, uniqv)))]#
+}#
+#message("众数")#
+getmode(vecBZL)
+d1$paifang[1]#
+paifang<-as.array(d1$paifang)#
+nrow(paifang)#
+mode(paifang)#
+for(i in c(1:nrow(paifang))){#
+  if(paifang[i]=="国一"|paifang[i]=="国二"|paifang[i]=="国三") paifang[i]="国三及以下"#
+}#
+dataset1 <- data.frame(value = logbaozhilv, group = factor(paifang))#
+boxplot(value ~ group,main="Log保值率和排放量标准的关系",col="yellow",ylab="Log保值率",dataset1,family = "STHeiti")
+font_files()
+install.packages("extrafont")#
+library(extrafont)#
+font_import()
+font_files()
+fonttable()
+fonts()
+library(extrafont)
+font_import()
+fonts()
+update.packages(checkBuilt = TRUE)
+install.packages("showtext", dependencies=TRUE)
+install.packages("sysfonts", dependencies=TRUE)
+.libPaths()
+knitr::knit2html('Old cars.Rmd')
+knitr::knit2html('/Users/liyunfan/Desktop/数据挖掘/Old\ cars.Rmd')
+rmarkdown::render('/Users/liyunfan/Desktop/数据挖掘/Old\ cars.Rmd')
+library(sysfonts)
+require(knitr)
+require(markdown)
+knit('Old cars.rmd', 'test.md')
+warnings()
+install.packages(rmarkdown)
+install.packages(setdiff(.packages(TRUE), 'base'))
+install.packages(setdiff(.packages(TRUE), 'base'))
+warnings()

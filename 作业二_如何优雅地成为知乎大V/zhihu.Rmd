@@ -1,0 +1,30 @@
+---
+title: "zhihu"
+author: "Yunfan Li"
+date: "2019/3/22"
+output: html_document
+---
+# 准备工作
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+##清除工作环境
+cat("\014");rm(list=ls())
+setwd("/Users/liyunfan/Desktop/数据挖掘/作业二_如何优雅地成为知乎大V/")
+```
+
+## TASK 1
+
+```{r task1}
+dat0 <- read.csv("zhihu.csv", header=1, stringsAsFactors=FALSE, fileEncoding="utf-8")
+summary(dat0)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

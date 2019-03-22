@@ -1,0 +1,166 @@
+---
+title: "副本"
+author: "Yunfan Li"
+date: "2019/3/11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sysfonts)
+library(showtext)
+showtext.auto(enable = TRUE)
+font.add('Songti', regular='/Library/Fonts/Songti.ttc')
+par(family='Songti')
+```
+
+```{r cars}
+setwd("/Users/liyunfan/Desktop/数据挖掘")
+dat0 <- read.csv("/Users/liyunfan/Desktop/数据挖掘/cars.csv", header=1, stringsAsFactors=FALSE, fileEncoding="GB2312")
+#dim(dat0)
+```
+```{r cut residual data}
+d1 <- subset(dat0,pailiang != -1|paifang != -1)
+#dim(d1)
+```
+```{r plot histogram}
+mode(d1)
+baozhilv <- d1$baojia/d1$yuanjia
+hist(baozhilv,col="yellow",xlab="保值率",ylab="频数", main="保值率")
+logbaozhilv <- log(d1$baojia/(d1$yuanjia-d1$baojia))
+hist(logbaozhilv,col="yellow",xlab="Log保值率",ylab="频数", family='STXihei', main="Log保值率")
+```
+```{r analysis preset}
+vecBZL <- as.data.frame(baozhilv)
+#vecBZL<-rowSums(vecBZL*is.finite(vecBZL),na.rm=TRUE)
+vecBZL[sapply(vecBZL, is.infinite)] <- NA
+vecBZL<-na.omit(vecBZL)
+dim(vecBZL)
+vecBZL<-as.numeric(unlist(vecBZL))
+```
+```{r analysis calc2}
+#message("均值")
+mean(vecBZL)
+#message("中位数")
+max(vecBZL)
+#message("最大值")
+min(vecBZL)
+#message("最小值")
+median(vecBZL, na.rm = FALSE)
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+#message("众数")
+getmode(vecBZL)
+```
+```{r anyalysis calc3.1}
+d1$paifang[1]
+paifang<-as.array(d1$paifang)
+nrow(paifang)
+mode(paifang)
+for(i in c(1:nrow(paifang))){
+  if(paifang[i]=="国一"|paifang[i]=="国二"|paifang[i]=="国三") paifang[i]="国三及以下"
+}
+dataset1 <- data.frame(value = logbaozhilv, group = factor(paifang))
+boxplot(value ~ group,main="Log保值率和排放量标准的关系",col="yellow",ylab="Log保值率",dataset1)
+```
+```{r anyalysis calc3.2}
+  pailiangfct<-as.data.frame(d1$pailiang)
+  #pailiangfct$jc<-''
+  #pailiangfct$pl<-as.data.frame(d1$pailiang)
+  mode(pailiangfct)
+  nrow(pailiangfct)
+pailiangfactor<-function(pailiangfct){
+  for(i in c(1:nrow(pailiangfct))){
+    if(pailiangfct$pl[1,i]<1) pailiangfct$jc[i]="微型轿车"
+    else if (pailiangfct$pl[1,i]<1.6) pailiangfct$jc[i]="普通级轿车"
+    else if (pailiangfct$pl[1,i]<2.5) pailiangfct$jc[i]="中级轿车"
+    else if (pailiangfct$pl[1,i]<4.0) pailiangfct$jc[i]="中高级轿车"
+    else if (pailiangfct$pl[1,i]>=4.0) pailiangfct$jc[i]="高级轿车"
+  }
+  pailiangfct
+}
+```
+```{r anyalysis calc3.3}
+for(i in c(1:nrow(pailiangfct))){
+  if(pailiangfct$`d1$pailiang`[i]<1) pailiangfct$jc[i]="微型轿车"
+  else if (pailiangfct$`d1$pailiang`[i]<1.6) pailiangfct$jc[i]="普通级轿车"
+  else if (pailiangfct$`d1$pailiang`[i]<2.5) pailiangfct$jc[i]="中级轿车"
+  else if (pailiangfct$`d1$pailiang`[i]<4.0) pailiangfct$jc[i]="中高级轿车"
+  else if (pailiangfct$`d1$pailiang`[i]>=4.0) pailiangfct$jc[i]="高级轿车"
+}
+mode(pailiangfct)
+dim(pailiangfct)
+dataset2 <- data.frame(value = logbaozhilv, group = factor(pailiangfct$jc))
+boxplot(value ~ group,main="Log保值率和排放量标准的关系",col="yellow",ylab="Log保值率",dataset2)
+
+```
+
+
+```{r anyalysis calc4 import}
+d1 <- read.csv("/Users/liyunfan/Desktop/数据挖掘/cars-final.csv", header=1, stringsAsFactors=FALSE, fileEncoding="GB2312")
+dim(d1)
+```
+```{r anyalysis calc4}
+func<-function(a,cxname){
+  myvars <- c("其他","SUV","中大型车","紧凑型车")
+  chexing<-a[myvars]
+  logbaozhilv <- as.data.frame(log(a$baojia/(a$yuanjia-a$baojia)))
+  dim(chexing)
+  dim(logbaozhilv)
+  #chexing<-merge(chexing, rep("",time=nrow(chexing)))
+  chexing$logbaozhilv<-logbaozhilv
+  #nrow(chexing)
+  #cx<-list(rep("",time=nrow(chexing)))
+  cx <- rep("",time=nrow(chexing))
+  #dim(cx) <- c(nrow(chexing),1)
+  chexing$cx<-cx
+  for(i in c(1:nrow(chexing))){
+    if(chexing[i,"SUV"]==1)
+      chexing[i,ncol(chexing)]="SUV"
+    else if(chexing[i,"紧凑型车"]==1)
+      chexing[i,ncol(chexing)]="紧凑型车"
+    else if(chexing[i,"中大型车"]==1)
+      chexing[i,ncol(chexing)]="中大型车"
+    else
+      chexing[i,ncol(chexing)]="其他"
+  }
+  names<-c("cx","logbaozhilv")
+  chexing<-chexing[names]
+  logbaozhilv<-as.numeric(unlist(chexing$logbaozhilv))
+  mode(logbaozhilv)
+  dataset1 <- data.frame(value = logbaozhilv, group = factor(chexing$cx))
+  dataset1
+  plotname<-paste('Log保值率和车身类型的关系',cxname)
+  graph<-boxplot(value ~ group,main=plotname,col="yellow",ylab="Log??????",dataset1)
+  graph
+}
+
+a<-subset(d1,华晨宝马==1)
+dataset1<-func(a,"华晨宝马")
+a<-subset(d1,其他.1==1)
+dataset1<-func(a,"其他.1")
+a<-subset(d1,上汽大众==1)
+dataset1<-func(a,"上汽大众")
+a<-subset(d1,上汽集团==1)
+dataset1<-func(a,"上汽集团")
+a<-subset(d1,上汽通用别克==1)
+dataset1<-func(a,"上汽通用别克")
+a<-subset(d1,上汽通用雪佛兰==1)
+dataset1<-func(a,"上汽通用雪佛兰")
+a<-subset(d1,一汽.大众奥迪==1)
+dataset1<-func(a,"一汽.大众奥迪")
+a<-subset(d1,长安福特==1)
+dataset1<-func(a,"长安福特")
+```
+```{r anyalysis calc5}
+licheng<-as.data.frame(d1$licheng)
+logbaozhilv<-as.data.frame(log(d1$baojia/(d1$yuanjia-a$baojia)))
+dim(licheng)
+dim(logbaozhilv)
+plot(x=as.numeric(unlist(licheng)), y=as.numeric(unlist(logbaozhilv)), main="Log保值率与里程数的关系", xlab="里程", ylab="Log保值率",ylim=c(-4,2),pch=19,col="black",bg="black",cex=0.5)
+```
+
+```{r anyalysis knitr}
+```
