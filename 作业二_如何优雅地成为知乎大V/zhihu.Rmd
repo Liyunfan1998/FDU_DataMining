@@ -1,30 +1,229 @@
 ---
-title: "zhihu"
-author: "Yunfan Li"
+title: "知乎用户分析"
+author: "Yunfan Li —— 16302010002"
 date: "2019/3/22"
-output: html_document
+
+output:
+  html_document:
+    toc: TRUE
+    theme: spacelab
+    highlight: tango
+    df_print: paged  
+    code_folding: show 
 ---
-# 准备工作
+## 准备工作
+
+##### 开始前对任务1-6的分析：TASK1-2是对整个数据做了一个检视，看看我们研究的因变量（response）是如何分布，以及我们的自变量（predictor）呈什么形状。TASK3-4挑了几个直观上解释性比较强的（类别型）自变量进行因变量～单自变量研究，为求大体看出相关性。TASK5对Task3的自变量做了一个程度划分，encode变成哑变量。TASK6将之前清洗过的数据做多元线性回归，从中推出了我们最终想得到的规律。
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ##清除工作环境
 cat("\014");rm(list=ls())
+par(family='STKaiti')
 setwd("/Users/liyunfan/Desktop/数据挖掘/作业二_如何优雅地成为知乎大V/")
 ```
 
 ## TASK 1
 
+### 1.1
 ```{r task1}
 dat0 <- read.csv("zhihu.csv", header=1, stringsAsFactors=FALSE, fileEncoding="utf-8")
 summary(dat0)
 ```
 
-## Including Plots
+##### 由上述数据分析得，用户男女比8：2；回答数的取值范围是[1,16199]，均值为64；提问数的取值范围是[0,1754]，均值为13；专栏数的取值范围是[0,8]，均值为0.8；分享数的取值范围是[0,284]，均值为4.6；分享数的取值范围是[0,284]，均值为4.6；点赞数的取值范围是[1,1460757]，均值为3915.5；感谢数的取值范围是[1,250787]，均值为726；关注数的取值范围是[0,15837]，均值为237.4；分享数的取值范围是[1,808142]，均值为16429；........................（但此处发现一个问题，性别的encoding本来应该是男女0-1，但是出现了max值为2，在不清楚数据encoding含义的情况下比较难做推断，我们接下来按照男女0-1，假装没有异常值来进行分析）
 
-You can also embed plots, for example:
+## TASK 2
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+### 2.1
+```{r task2.1, warning=FALSE}
+# colnames(dat0)
+library(ggplot2)
+par(mfrow=c(1,2))
+popularity<-data.frame(pop=dat0$被关注数)
+dat0$对数被关注数<-log(dat0$被关注数)
+popularity$logpop<-log(popularity$pop)
+hist(popularity$pop,col='yellow',xlab="被关注数",ylab="频数",family='STKaiti',main = '')
+hist(popularity$logpop,col='yellow',xlab="对数被关注数",ylab="频数",family='STKaiti',main = '')
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+##### 非常明显的是，被关注数集中在0附近，但是较大的值看不清楚，我们可以对频数做个log变换，基本上就呈一个比较清楚的左右比较对称的形状
+
+##### 但这样看上去还是比较难看出分布，我们可以做一个分布密度图加在上面，如下
+
+### 2.2
+```{r task2.2, warning=FALSE}
+# ggplot(popularity, aes(x=popularity$pop,y=..density..)) +
+p1 <- ggplot(popularity, aes(x=pop,y=..density..)) +  geom_histogram( colour="black", fill="white") + xlim(0, 40000) + geom_vline(aes(xintercept=mean(popularity$pop, na.rm=T)),   
+    # Ignore NA values for mean
+     color="red", linetype="dashed", size=1) +  geom_density(alpha=.2, fill="#FF6666")  # 重叠部分采用透明设置
+
+p2 <- ggplot(popularity, aes(x=logpop,y=..density..)) +  geom_histogram( colour="black", fill="white") + xlim(0, 14) + geom_vline(aes(xintercept=mean(popularity$logpop, na.rm=T)),   
+    # Ignore NA values for mean
+     color="red", linetype="dashed", size=1) +  geom_density(alpha=.2, fill="#FF6666")  # 重叠部分采用透明设置
+library(gridExtra)
+grid.arrange(p1,p2,nrow=1)
+```
+
+##### 我们从上图可以看出，用户多为“小透明”，即没有什么关注度，被关注度呈指数递减。直方图显示被对数关注度数据近似于0-1正态分布，符合预期情况。
+
+## TASK 3
+
+### 3.1
+```{r task3.1.1, warning=FALSE}
+gs<-sort(table(dat0$公司),decreasing = T)
+gs[1:20]
+```
+
+##### 可以发现，知乎用户中多数就职于国内高科技互联网公司如阿里腾讯等，国外的谷歌微软和脸书也有不少知乎粉丝，还有不少是再读学生，多数就读于清北和港中大，可谓人才济济。
+##### 再一个小群体就是自由职业，创业和律师了
+
+##### 之前有过知乎平均水平的梗，“工资人均五十万，学历各个985”，看来也不是无源无据～
+
+##### 下面按照公司是否是BAT，分为两个类别，绘制箱线图（此处为了便于观察，箱宽设置为一致，后面的箱线图都按照样本量设定对应的箱宽）
+```{r task3.1.2, warning=FALSE}
+dat0$BAT<-ifelse(dat0$公司 %in% c('阿里巴巴集团','腾讯','百度'),1,0)
+# for( i in c(1:nrow(dat0))){
+#   if (dat0$公司[i] %in% c('阿里巴巴集团','腾讯','百度')){
+#     dat0$BAT[i]=1
+#   }else{
+#     dat0$BAT[i]=0
+#   }
+# }
+fil<-factor(dat0$BAT,labels=c("非BAT","BAT"))
+p<-ggplot(data=dat0, aes(x=factor(BAT),y=对数被关注数))+geom_boxplot(aes(fill=fil))+scale_y_continuous(breaks=seq(0,15,2))+scale_x_discrete(labels=c("非BAT","BAT"))
+p+theme(text = element_text(family = 'STKaiti'))
+```
+
+##### 上面提到很多知乎用户来自互联网企业，可以将知乎用户的公司划分为BAT与非BAT两个类别，画出箱线图，可以看出，来自非BAT的知乎用户的对数关注量均值稍微高于来自BAT的知乎用户，但前者方差同时也高于后者。猜想可能的原因是，BAT员工有自己的小圈子，平时也忙于工作，刷知乎主要是学习工作性质，发文也多为技术主题，受众相对于Eg.情感主题的受众较小。
+
+### 3.2
+```{r task3.2.1, warning=FALSE}
+zy<-sort(table(dat0$职业),decreasing = T)
+zy[1:20]
+```
+
+##### 如上分析职业出现频率，结果显示创始人很多，知乎用户多是有些想法的人，创始人就是有想法并付诸行动的人嘛，所以对于这个结果我也不吃惊。接下来就是跟互联网公司有关的，工程师啊，产品经理啊；当然学生党也是知乎三大山。
+
+##### 下面按照职业是否是创始人及CEO，分为两个类别，绘制箱线图
+
+##### 这里的注释掉的代码是我本来写的，用了for循环，由于之前学的C++，对R这种高级语言有的简便操作不是很熟悉，在室友的指导下得知了比较方便简洁的写法。感谢室友，也感谢老师和助教～
+```{r task3.2.2, warning=FALSE}
+dat0$csr<-ifelse(dat0$职业 %in% c('创始人','CEO'),1,0)
+# for( i in c(1:nrow(dat0))){
+#   if (dat0$职业[i] %in% c('创始人','CEO')){
+#     dat0$csr[i]=1
+#   }else{
+#     dat0$csr[i]=0
+#   }
+# }
+fil<-factor(dat0$csr,labels=c("其他职业","创始人或CEO"))
+p<-ggplot(data=dat0, aes(x=factor(csr),y=对数被关注数))+geom_boxplot(varwidth = TRUE,aes(fill=fil))+scale_y_continuous(breaks=seq(0,15,2))+scale_x_discrete(labels=c("其他职业","创始人或CEO"))
+p+theme(text = element_text(family = 'STKaiti'))
+```
+
+##### 用箱的宽度来表示样本量，由于其他职业用户样本量大于创始人及CEO，所以箱子会宽一些，两类对数被关注度均值接近，创始人和CEO的对数被关注度稍高，方差也较小。可以合理推断，知乎用户多数有创业想法，相较之下更愿意听创业者的故事。由箱宽可以看出创始人和CEO毕竟是少数群体，样本量比较小。不过在整个知乎用户群体中，也算是占了一个山头～
+
+### 3.3
+```{r task3.3.1, warning=FALSE}
+byyx<-sort(table(dat0$毕业院校),decreasing = T)
+byyx[1:20]
+```
+
+##### 毕业院校不必多说了吧，上面全是有头有脸的学校，最多的就是清北浙复，诶，交大呢？稍微后面了一点哦～
+
+##### 下面按照是否在清北浙复交，分为两个类别，绘制箱线图
+```{r task3.3.2, warning=FALSE}
+dat0$qbjfz<-ifelse(dat0$毕业院校 %in% c('北京大学','清华大学','浙江大学','复旦大学','上海交通大学'),1,0)
+# for( i in c(1:nrow(dat0))){
+#   if (dat0$毕业院校[i] %in% c('北京大学','清华大学','浙江大学','复旦大学','上海交通大学')){
+#     dat0$qbjfz[i]=1
+#   }else{
+#     dat0$qbjfz[i]=0
+#   }
+# }
+fil<-factor(dat0$qbjfz,labels=c("其他院校","清北交复浙"))
+p<-ggplot(data=dat0, aes(x=factor(qbjfz),y=对数被关注数))+geom_boxplot(varwidth = TRUE,aes(fill=fil))+scale_y_continuous(breaks=seq(0,15,2))+scale_x_discrete(labels=c("其他院校","清北交复浙"))
+p+theme(text = element_text(family = 'STKaiti'))
+```
+
+##### 清北交复浙用户对数被关注度和其他院校基本持平，但方差更大，说明清北交复浙用户中的大佬更厉害一些，符合事实。由箱宽可以看出来自清北交复浙的毕竟是少数群体，样本量比较小。不过在整个知乎用户群体中，也算是比较多的了～
+
+## TASK 4
+```{r task4.1, warning=FALSE}
+summary(dat0$提问数)
+```
+
+##### 提问数的取值范围是[0,1754]，均值为13。平均一个人提3个问题？我是不信的。居然有人提了一千多个问题？？？
+```{r task4.2, warning=FALSE}
+#找到其四分之三分位点，将提问数进行离散化处理，即小于四分之三分位点（7.00）的为“低问”，否则为“高问”。
+dat0$gw<-ifelse(dat0$提问数>7,1,0)
+# for( i in c(1:nrow(dat0))){
+#   if (dat0$提问数[i]>=7){
+#     dat0$gw[i]=1
+#   }else{
+#     dat0$gw[i]=0
+#   }
+# }
+fil<-factor(dat0$gw,labels=c("低问","高问"))
+p<-ggplot(data=dat0, aes(x=factor(gw),y=对数被关注数))+geom_boxplot(varwidth = TRUE,aes(fill=fil))+scale_y_continuous(breaks=seq(0,15,2))+scale_x_discrete(labels=c("低问","高问"))
+p+theme(text = element_text(family = 'STKaiti'))
+```
+
+##### 相比于低问用户，明显高问的用户有更大的对数被关注数，说明在知乎上经常提问有助于积累粉丝！其实，提问和回答都是刷存在感的手段，要是存在感强了，不愁没人注意你～
+
+
+## TASK 5
+
+### 5.1
+```{r task5.1, warning=FALSE}
+dat0$点赞回答比=dat0$点赞数/dat0$回答数
+dat0$感谢回答比=dat0$感谢数/dat0$回答数
+dat0$分享回答比=dat0$分享数/dat0$回答数
+summary(dat0$点赞回答比)
+summary(dat0$感谢回答比)
+summary(dat0$分享回答比)
+```
+##### 由上可以看到点赞回答比的取值范围是[0,22952]，均值为262；感谢回答比的取值范围是[0,3032]，49.5；分享回答比的取值范围是[0,3]，0.03671.直观上看来，点赞回答比的均值最大，感谢回答比其次，分享回答比最小。这与我们在实际生活中刷知乎的习惯有关，对于同一个回答，如果认同则点赞，感谢是比较新的功能，和点赞有一些含义上的重复，相对来说被用的比较少，而分享需要更复杂的操作，将内容搬运到微信等及时聊天软件上，相对的用户操作成本较高，因而用的也比较少。上述结果符合事实。
+
+### 5.2
+```{r task5.2, warning=FALSE}
+# “点赞比”“感谢比”和“分享比”。
+# dat0$点赞比[which(dat0$点赞回答比>=0&dat0$点赞回答比<=10)]='低'
+# dat0$点赞比[which(dat0$点赞回答比>10&dat0$点赞回答比<=100)]='中'
+# dat0$点赞比[which(dat0$点赞回答比>100)]='高'
+# 
+# ##
+# dat0$感谢比[which(dat0$感谢回答比>=0&dat0$感谢回答比<=10)]='低'
+# 
+# dat0$感谢比[which(dat0$感谢回答比>10&dat0$感谢回答比<=100)]='中'
+# dat0$感谢比[which(dat0$感谢回答比>100)]='高'
+# ##
+# dat0$分享比[which(dat0$分享回答比>=0&dat0$分享回答比<=10)]='低'
+# summary(factor(dat0$点赞比))
+# dat0$分享比[which(dat0$分享回答比>10&dat0$分享回答比<=100)]='中'
+# dat0$分享比[which(dat0$分享回答比>100)]='高'
+dat0$点赞比高<-ifelse(dat0$点赞回答比>100,1,0)
+dat0$感谢比高<-ifelse(dat0$感谢回答比>10,1,0)
+dat0$分享比高<-ifelse(dat0$分享回答比>0,1,0)
+##
+summary(factor(dat0$点赞比高))
+summary(factor(dat0$感谢比高))
+summary(factor(dat0$分享比高))
+```
+
+##### 我们将点赞回答比按照100为界，感谢回答比按照10为界，分享回答比按照0为界，分别分为高和低两档，设置哑变量来进行进一步分析（后面涉及到多元线性回归）。可以看出在我们的定义下，三个变量的高与低的样本量比较接近（在3倍之内），这是为了后面回归更具解释性。
+
+## TASK 6
+```{r task6.1, warning=FALSE}
+line.model<-lm(对数被关注数 ~ 性别 + BAT + csr + qbjfz + 提问数 + 专栏数 + 回答数 + 感谢比高 + 点赞比高 + 分享比高, data = dat0)
+summary(line.model)
+```
+
+##### 多元线性回归结果表明：和对数被关注数正相关性最强的是感谢比（感谢回答比高），第二是点赞比，第三是分享比，第四是专栏数。其余显著的正相关还有职业是为创始人CEO，毕业院校是大五校。在BAT工作的系数为负说明呈负相关，这点也可以理解，大胆猜测：很多BAT员工，平时工作几乎996，太忙来，所以把知乎当抖音或者当浏览器，只浏览内容，而不发什么内容，这样一来粉丝少也很正常。最后，性别也有很强的相关性，不过在数据中没有标明性别的encoding是怎么做的，因此不能做出更多推断。
+
+
+## 总结
+
+##### 从本次作业中，我们可以得知知乎用户的被关注度由哪些变量决定，TASK1-2是对整个数据做了一个检视，看看我们研究的因变量（response）是如何分布，以及我们的自变量（predictor）呈什么形状。TASK3-4挑了几个直观上解释性比较强的（类别型）自变量进行因变量～单自变量研究，为求大体看出相关性。TASK5对Task3的自变量做了一个程度划分，encode变成哑变量。TASK6将之前清洗过的数据做了多元线性回归，从中推出了我们最终想得到的规律。整个过程十分清晰明了，让我们对以知乎为例的社区型社交媒体，其中用户的热度以及可能相关的原因有了更深的理解。
+
+##### 对这次作业的一点疑问：我们从被关注度得到的相关性强的自变量有什么比较好的应用场景？我们的研究对于‘如何让自己变成知乎大V’是否有帮助呢？
